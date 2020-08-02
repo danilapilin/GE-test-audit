@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import holidays
 
 
-def read_files(file_name: str = 'JE testing (Titan Russia)_12m19.xlsx', sheet_name: str = 'JE') -> tuple:
+def read_files(file_name: str = 'JE input.xlsx', sheet_name: str = 'JE') -> tuple:
     """
     Reading files
     :param file_name: excel file name
@@ -153,7 +153,7 @@ def main() -> None:
     inner_join_holidays = holidays_ds(excel_data_df)
     inner_join_credit_no_expence, random_25_rows = credits_no_expence_rand_choice(excel_data_df,
                                                                                   credit_no_expence_notes)
-    path = r"JE testing (Titan Russia)_12m19_new.xlsx"
+    path = r"JE output.xlsx"
     writer = pd.ExcelWriter(path, engine='openpyxl')
     # excel_data_df.to_excel(writer, 'JE')
     df2.to_excel(writer, 'Acc Dt')
