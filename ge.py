@@ -33,7 +33,6 @@ def plot_digs(df, x, y_Exp, y_Found, N, figsize, conf_Z, name_pic, text_x=False)
         upper = y_Exp + sig + (1 / (2 * N))
         lower_zeros = array([0] * len(upper))
         lower = maximum(y_Exp - sig - (1 / (2 * N)), lower_zeros)
-        u = (y_Found < lower) | (y_Found > upper)
         lower *= 100.
         upper *= 100.
         ax.plot(x, upper, zorder=5)
@@ -55,7 +54,7 @@ def plot_digs(df, x, y_Exp, y_Found, N, figsize, conf_Z, name_pic, text_x=False)
     ax.set_xlim(x[0] - 1, x[-1] + 1)
 
     plt.savefig(name_pic)
-    plt.sho
+    plt.show()
 
 
 def handle_datasets(excel_data_df: pd.DataFrame, out_of_balance_notes: pd.DataFrame) -> tuple:
@@ -106,7 +105,7 @@ def belford_test(excel_data_df: pd.DataFrame) -> tuple:
     return excel_data_df_for_test, inner_join_df2
 
 
-def last_3_digits(excel_data_df_for_test):
+def last_3_digits(excel_data_df_for_test: pd.DataFrame) -> pd.DataFrame:
     digs = 2
     l2d = bf.last_two_digits(excel_data_df_for_test.Amount, decimals=2, confidence=99.99999, high_Z='pos')
     l2d.reset_index(level=0, inplace=True)
