@@ -4,17 +4,22 @@ import benford as bf
 import matplotlib.pyplot as plt
 import holidays
 
+import os
 
-def read_files(file_name: str = 'JE input.xlsx', sheet_name: str = 'JE') -> tuple:
+dir = os.path.dirname(os.path.abspath(__file__))
+
+
+def read_files(sheet_name: str = 'JE') -> tuple:
     """
     Reading files
-    :param file_name: excel file name
     :param sheet_name: name of sheet
     """
-    excel_data_df = pd.read_excel(file_name, sheet_name=sheet_name).fillna(0)
+    data = [i for i in os.listdir(dir + '\\data') if '.xlsx' in i]
+    note = [i for i in os.listdir(dir + '\\note') if '.xlsx' in i]
+    excel_data_df = pd.read_excel('data\\' + data[0], sheet_name=sheet_name).fillna(0)
     excel_data_df['date1'] = pd.to_datetime(excel_data_df['date'])
-    out_of_balance_notes = pd.read_excel('notes.xlsx', sheet_name='Out of balance notes')
-    credit_no_expence_notes = pd.read_excel('notes.xlsx', sheet_name='Credit no expence notes', dtype={'Acc Dt': str})
+    out_of_balance_notes = pd.read_excel('note\\' + note[0], sheet_name='Out of balance notes')
+    credit_no_expence_notes = pd.read_excel('note\\' + note[0], sheet_name='Credit no expence notes', dtype={'Acc Dt': str})
 
     return excel_data_df, out_of_balance_notes, credit_no_expence_notes
 
