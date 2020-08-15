@@ -1,2 +1,1 @@
-@echo off
-cmd /k "python -m venv venv & venv\Scripts\activate.bat & pip install -r requirements.txt"
+cmd /k "python -m venv ..\venv & cd .. & venv\Scripts\activate.bat & pip install -r requirements.txt"
