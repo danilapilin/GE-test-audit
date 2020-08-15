@@ -1,12 +1,16 @@
 import pandas as pd
 import benford as bf
 import matplotlib.pyplot as plt
+from matplotlib import rc
 import holidays
 from numpy import array, arange, maximum, sqrt
 from openpyxl import load_workbook
 
 import os
 
+
+rc('font', **{'family': 'serif', 'serif': ['Palatino']})
+plt.rcParams['pdf.fonttype'] = 42
 
 colors = {'m': '#00798c', 'b': '#E2DCD8', 's': '#9c3848',
           'af': '#edae49', 'ab': '#33658a', 'h': '#d1495b',
@@ -18,13 +22,6 @@ confs = {None: None, 80: 1.285, 85: 1.435, 90: 1.645, 95: 1.96,
 
 dir = os.path.dirname(os.path.abspath(__file__))
 
-
-def read_files() -> tuple:
-    pass
-"""
-    return excel_data_df, manual_entries, out_of_balance_notes, credit_no_expence_notes, key_words_notes, holidays_added, \
-           related_parties_list
-"""
 
 def plot_digs(df, x, y_Exp, y_Found, N, figsize, conf_Z, name_pic, text_x=False) -> None:
     if len(x) > 10:
