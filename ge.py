@@ -7,7 +7,8 @@ from numpy import array, arange, maximum, sqrt
 from openpyxl import load_workbook
 
 import os
-
+from shutil import copyfile
+import threading
 
 rc('font', **{'family': 'serif', 'serif': ['Palatino']})
 plt.rcParams['pdf.fonttype'] = 42
@@ -37,28 +38,54 @@ def plot_digs(df, x, y_Exp, y_Found, N, figsize, conf_Z, name_pic, text_x=False)
         upper = y_Exp + sig + (1 / (2 * N))
         lower_zeros = array([0] * len(upper))
         lower = maximum(y_Exp - sig - (1 / (2 * N)), lower_zeros)
+
+        u = (y_Found < lower) | (y_Found > upper)
+        c = array([colors['m']] * len(u))
+        c[u] = colors['af']
+
         lower *= 100.
         upper *= 100.
-        ax.plot(x, upper, zorder=5)
-        ax.plot(x, lower, zorder=5)
-        ax.fill_between(x, upper, lower,
-                        alpha=.3, label='Conf')
-    ax.bar(x, y_Found * 100., label='Found', zorder=3, align='center')
-    ax.plot(x, y_Exp * 100., linewidth=2.5,
-            label='Benford', zorder=4)
+        ax.plot(x, upper, zorder=5, color=colors['s'])
+        ax.plot(x, lower, zorder=5, color=colors['s'])
+        ax.fill_between(x, upper, lower, alpha=.3, label='Conf', color=colors['s'])
+    else:
+        c = colors['m']
+    ax.bar(x, y_Found * 100., label='Found', zorder=3, align='center', color=c)
+    ax.plot(x, y_Exp * 100., linewidth=2.5, label='Benford', zorder=4, color=colors['s'])
     ax.set_xticks(x)
     ax.set_xticklabels(x, rotation=rotation)
+    ax.set_facecolor(colors['b'])
     if text_x:
         ind = array(df.index).astype(str)
-        ind[:10] = array(['00', '01', '02', '03', '04', '05',
-                          '06', '07', '08', '09'])
+        ind[:10] = array(['00', '01', '02', '03', '04', '05', '06', '07', '08', '09'])
         plt.xticks(x, ind, rotation='vertical')
     ax.legend()
     ax.set_ylim(0, max([y_Exp.max() * 100, y_Found.max() * 100]) + 10 / len(x))
     ax.set_xlim(x[0] - 1, x[-1] + 1)
 
     plt.savefig('output\\' + name_pic)
-    plt.show()
+    plt.show(block=False)
+
+
+def load_files():
+    data_file = 'data\\' + [i for i in os.listdir(dir + '\\data') if '.xlsx' in i][0]
+    notes_file = 'note\\' + [i for i in os.listdir(dir + '\\note') if '.xlsx' in i][0]
+
+    excel_data_df = pd.read_excel(data_file, sheet_name='JE').fillna(0)
+    manual_entries = pd.read_excel(data_file, sheet_name='Manual entries')
+    summary = pd.read_excel(data_file, sheet_name='Summary')
+
+    out_of_balance_notes = pd.read_excel(notes_file, sheet_name='Out of balance notes')
+    credit_no_expence_notes = pd.read_excel(notes_file, sheet_name='Credit no expence notes', dtype={'Acc Dr': str})
+
+    key_words_notes = pd.read_excel(notes_file, sheet_name='Key words')["key words"].tolist()
+    holidays_added = pd.read_excel(notes_file, sheet_name='holidays_added')
+
+    related_parties_list = pd.read_excel(notes_file, sheet_name='Related parties_list')[
+        "Related parties_list"].tolist()
+
+    return excel_data_df, manual_entries, summary, out_of_balance_notes, credit_no_expence_notes, key_words_notes, \
+           holidays_added, related_parties_list, data_file
 
 
 def handle_datasets(excel_data_df: pd.DataFrame, out_of_balance_notes: pd.DataFrame) -> tuple:
@@ -187,7 +214,6 @@ def get_credit_no_expence_notes(excel_data_df: pd.DataFrame, credit_no_expence_n
 
 def check_entry(excel_data_df: pd.DataFrame, list_to_check: list) -> pd.DataFrame:
     d = []
-
     for k in excel_data_df.values:
         h = 0
         for i in k:
@@ -203,24 +229,13 @@ def main() -> None:
     """
     Entry point
     """
-    """
-    excel_data_df, manual_entries, out_of_balance_notes, credit_no_expence_notes, key_words_notes, holidays_added, \
-        related_parties_list = read_files()
-    """
-    data_file = 'data\\' + [i for i in os.listdir(dir + '\\data') if '.xlsx' in i][0]
-    notes_file = 'note\\' + [i for i in os.listdir(dir + '\\note') if '.xlsx' in i][0]
 
-    excel_data_df = pd.read_excel(data_file, sheet_name='JE').fillna(0)
-    manual_entries = pd.read_excel(data_file, sheet_name='Manual entries')
+    print('STARTING FILE DOWNLOADING!')
 
-    out_of_balance_notes = pd.read_excel(notes_file, sheet_name='Out of balance notes')
-    credit_no_expence_notes = pd.read_excel(notes_file, sheet_name='Credit no expence notes', dtype={'Acc Dr': str})
+    excel_data_df, manual_entries, summary, out_of_balance_notes, credit_no_expence_notes, key_words_notes, \
+    holidays_added, related_parties_list, data_file = load_files()
 
-    key_words_notes = pd.read_excel(notes_file, sheet_name='Key words')["key words"].tolist()
-    holidays_added = pd.read_excel(notes_file, sheet_name='holidays_added')
-
-    related_parties_list = pd.read_excel(notes_file, sheet_name='Related parties_list')[
-        "Related parties_list"].tolist()
+    print("FILES DOWNLOADED!")
 
     df1, df2, df3, out_of_balance_dt, out_of_balance_ct, entries_with_no_description = \
         handle_datasets(excel_data_df, out_of_balance_notes)
@@ -238,34 +253,47 @@ def main() -> None:
 
     random_25_rows = manual_entries.sample(25, random_state=2)
 
-    path = r"output\JE output.xlsx"
-    #book = load_workbook(path)
-    writer = pd.ExcelWriter(path, engine='openpyxl')
-    #writer.book = book
+    copyfile(data_file, 'output\\JE_output.xlsx')
 
-    df2.to_excel(writer, 'By debit account')
-    df1.to_excel(writer, 'By credit account')
-    df3.to_excel(writer, 'By date')
-    out_of_balance_dt.to_excel(writer, '1.1 Out of balance debit', index=False)
-    out_of_balance_ct.to_excel(writer, '1.2 Out of balance credit', index=False)
-    inner_join_df2.to_excel(writer, '2.1 Benfords 2 first digit', index=False)
-    first_2_dig_result.to_excel(writer, '2.1 Benfords 2 first digit stat', index=False)
-    inner_join_l2d.to_excel(writer, '2.2 Benfords 2 last digit', index=False)
-    last_2_dig_result.to_excel(writer, '2.2 Benfords 2 last digit stat', index=False)
-    entries_with_no_description.to_excel(writer, '3. Entries with no description', index=False)
+    def save_to_file():
+        path = r"output\JE_output.xlsx"
+        book = load_workbook(path)
+        writer = pd.ExcelWriter(path, engine='openpyxl')
+        writer.book = book
+        empty_df = pd.DataFrame()
 
-    top_10_entries_debit.to_excel(writer, '4.1 Numerous entries debit')
-    top_10_entries_credit.to_excel(writer, '4.2 Numerous entries credit')
-    sum_by_user.to_excel(writer, '5. By user ID', index=False)
-    inner_join_holidays.to_excel(writer, '6.1 Holidays_entries', index=False)
-    inner_join_holidays_count.to_excel(writer, '6.2 Holidays_count')
-    inner_join_credit_no_expence.to_excel(writer, '7. Credits to expense', index=False)
-    related_parties_df.to_excel(writer, '8. Related parties', index=False)
-    key_words_df.to_excel(writer, '11. Key words', index=False)
-    random_25_rows.to_excel(writer, '10. Manual entries_25 items', index=False)
+        print("START CREATING OUTPUT FILES!")
 
-    writer.save()
-    writer.close()
+        df2.to_excel(writer, 'By debit account')
+        df1.to_excel(writer, 'By credit account')
+        df3.to_excel(writer, 'By date')
+
+        out_of_balance_dt.to_excel(writer, '1.1 Out of balance debit', index=False)
+        out_of_balance_ct.to_excel(writer, '1.2 Out of balance credit', index=False)
+        inner_join_df2.to_excel(writer, '2.1 Benfords 2 first digit', index=False)
+        first_2_dig_result.to_excel(writer, '2.1 Benfords 2 first digit stat', index=False)
+        inner_join_l2d.to_excel(writer, '2.2 Benfords 2 last digit', index=False)
+        last_2_dig_result.to_excel(writer, '2.2 Benfords 2 last digit stat', index=False)
+        entries_with_no_description.to_excel(writer, '3. Entries with no description', index=False)
+
+        top_10_entries_debit.to_excel(writer, '4.1 Numerous entries debit')
+        top_10_entries_credit.to_excel(writer, '4.2 Numerous entries credit')
+        sum_by_user.to_excel(writer, '5. By user ID', index=False)
+        inner_join_holidays.to_excel(writer, '6.1 Holidays_entries', index=False)
+        inner_join_holidays_count.to_excel(writer, '6.2 Holidays_count')
+        inner_join_credit_no_expence.to_excel(writer, '7. Credits to expense', index=False)
+        related_parties_df.to_excel(writer, '8. Related parties', index=False)
+        empty_df.to_excel(writer, '9. Manual revenue entries')
+        random_25_rows.to_excel(writer, '10. Manual entries_25 items', index=False)
+        key_words_df.to_excel(writer, '11. Key words', index=False)
+
+        writer.save()
+        writer.close()
+
+    thread = threading.Thread(target=save_to_file)
+    thread.start()
+
+    print('FINISH!')
 
 
 if __name__ == '__main__':
