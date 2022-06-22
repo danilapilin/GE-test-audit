@@ -8,7 +8,7 @@ jdcal==1.4.1
 kiwisolver==1.2.0
 korean-lunar-calendar==0.2.1
 matplotlib==3.3.0
-numpy==1.19.0
+numpy==1.22.0
 openpyxl==3.0.4
 pandas==1.0.5
 Pillow==7.2.0
